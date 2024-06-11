@@ -1,28 +1,41 @@
 #!/usr/bin/python3
-"""Fabric Script that distributes an archives"""
-
-
+"""
+script that distributes an archive to my web servers,
+using the function (do_deploy:)
+"""
+import os
 from fabric.api import put, run, env
-from os.path import exists
-env.hosts = ['54.227.179.101', '3.90.204.71']
+env.hosts = ['34.207.60.155', '54.221.35.253']
 
 
 def do_deploy(archive_path):
-    """Archives to web-servers"""
-    if exists(archive_path) is False:
+    """
+    Distribution to my servers
+    """
+    if archive_path is None or not os.path.exists(archive_path):
         return False
     try:
-        file_n = archive_path.split("/")[-1]
-        no_ext = file_n.split(".")[0]
+        file = archive_path.split("/")[-1]
+        file_name = file.split(".")[0]
         path = "/data/web_static/releases/"
-        put(archive_path, '/tmp/')
-        run('mkdir -p {}{}/'.format(path, no_ext))
-        run('tar -xzf /tmp/{} -C {}{}/'.format(file_n, path, no_ext))
-        run('rm /tmp/{}'.format(file_n))
-        run('mv {0}{1}/web_static/* {0}{1}/'.format(path, no_ext))
-        run('rm -rf {}{}/web_static'.format(path, no_ext))
-        run('rm -rf /data/web_static/current')
-        run('ln -s {}{}/ /data/web_static/current'.format(path, no_ext))
+        # upload the archive to the /tmp/ directory of the web server
+        put(archive_path, "/tmp/")
+        # create a folder with the same name as the archive
+        # without the extension
+        run("mkdir -p {}{}/".format(path, file_name))
+        # uncompress the archive to the folder
+        run("tar -xzf /tmp/{} -C {}{}/".format(
+            file, path, file_name))
+        # delete the archive from the web server
+        run("rm /tmp/{}".format(file))
+        run("mv {0}{1}/web_static/* {0}{1}/".format(path, file_name))
+        # delete the symbolic link /data/web_static/current from the web server
+        run("rm -rf {}{}/web_static".format(path, file_name))
+        run("rm -rf /data/web_static/current")
+        # create new symbolic link /data/web_static/current on web server
+        # linked to the new version of your code
+        run("ln -s {}{}/ /data/web_static/current".
+            format(path, file_name))
         return True
-    except:
+    except BaseException:
         return False
